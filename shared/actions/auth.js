@@ -3,7 +3,7 @@ import {Map} from 'immutable';
 import {UserModel, RulesLoginPassword} from '../models/UserModel';
 import {GameModelClient} from '../models/game/GameModel';
 import {redirectTo} from '../utils';
-import {addTimeout, cancelTimeout} from '../utils/reduxTimeout';
+import {addTimeout, checkTimeout, cancelTimeout} from '../utils/reduxTimeout';
 import jwt from 'jsonwebtoken';
 import Validator from 'validatorjs';
 
@@ -14,7 +14,7 @@ import {chatInit} from './chat';
 import {server$roomsInit, server$roomExit, findRoomByUser} from './rooms';
 
 export const SOCKET_DISCONNECT_NOW = 'SOCKET_DISCONNECT_NOW';
-export const TIMEOUT = 30 * 1000;
+export const TIMEOUT = 120 * 1000;
 
 import TimeService from '../../client/services/TimeService';
 
@@ -80,6 +80,7 @@ export const onlineUpdate = (user) => ({
 });
 
 export const server$loginUser = (user, redirect) => (dispatch, getState) => {
+  logger.debug('server$loginUser');
   if (!user.id) throw new Error('User has no ID');
   loggerOnline.info(`User ${user.login} joined`);
   const online = getState().get('users').map(u => u.toOthers());
@@ -118,9 +119,12 @@ export const server$injectUser = (id, login) => (dispatch) => {
   // console.log('dbUser', id, login)
   const user = new UserModel({id, login}).sign();
   dispatch(loginUser({user}));
+
+  const timeoutName = 'logoutUser' + user.id;
+  dispatch(cancelTimeout(timeoutName));
   dispatch(addTimeout(
     (process.env.TEST ? 1 : TIMEOUT)
-    , 'logoutUser' + user.id
+    , timeoutName
     , server$logoutUser(user.id)));
   return user;
 };
@@ -139,7 +143,7 @@ const customErrorReport = (customErrorAction, fn) => (dispatch, getState) => {
 
 export const authClientToServer = {
   loginUserFormRequest: ({redirect = '/', login = void 0, password = void 0}, {connectionId}) =>
-    customErrorReport((dispatch) => Object.assign(loginUserFailure(), {meta: {socketId: connectionId}}), (dispatch, getState) => {
+    customErrorReport((dispatch) => dispatch(Object.assign(loginUserFailure(), {meta: {socketId: connectionId}})), (dispatch, getState) => {
       const validation = new Validator({login, password}, RulesLoginPassword);
       if (validation.fails()) throw new ActionCheckError('loginUserFormRequest', 'validation failed: %s', JSON.stringify(validation.errors.all()));
 
@@ -150,14 +154,10 @@ export const authClientToServer = {
 
       dispatch(server$loginUser(user, redirect));
     })
-  , loginUserTokenRequest: ({redirect = '/', token}, {connectionId}) =>
-    customErrorReport((dispatch) => Object.assign(loginUserFailure(), {meta: {socketId: connectionId}}), (dispatch, getState) => {
+  , loginUserTokenRequest: ({redirect = '/', token}, {connectionId}) => (dispatch, getState) => Promise.resolve()
+    .then(() => {
       logger.silly('server$loginExistingUser', connectionId);
-      try {
-        jwt.verify(token, process.env.JWT_SECRET);
-      } catch (err) {
-        throw new ActionCheckError('server$loginExistingUser', `Token not valid (%s)`, token);
-      }
+      jwt.verify(token, process.env.JWT_SECRET); // Throws error
       const currentUser = getState().get('users').find(u => u.token === token);
       if (!currentUser) {
         throw new ActionCheckError('server$loginExistingUser', `User not exists (%s)`, token);
@@ -171,6 +171,9 @@ export const authClientToServer = {
       dispatch(cancelTimeout('logoutUser' + currentUser.id));
 
       dispatch(server$loginUser(currentUser.set('connectionId', connectionId), redirect));
+    })
+    .catch(() => {
+      dispatch(Object.assign(loginUserFailure(), {meta: {socketId: connectionId}}))
     })
 };
 

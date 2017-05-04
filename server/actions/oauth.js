@@ -2,7 +2,6 @@ import logger from '~/shared/utils/logger';
 import {promisify} from '../../shared/utils/index';
 import querystring from 'querystring';
 import request from 'request';
-const requestGet = promisify(request.get);
 import {db$findUser, db$registerUser, db$updateUser} from './db';
 import {AUTH_TYPE} from '../../shared/constants';
 import {server$injectUser} from '../../shared/actions/actions';
@@ -16,14 +15,18 @@ export const server$oauthVKRegister = (protocol, host, code) => (dispatch, getSt
   };
   const accessTokenUri = 'https://oauth.vk.com/access_token?' + querystring.stringify(VK_API_ACCESS_TOKEN);
 
+  const requestGet = promisify(request.get); // request.get gets stubbed by sinon at /shared/actions/auth.oauth.spec.js
+
+  logger.debug(`Asking VK`, VK_API_ACCESS_TOKEN);
   return requestGet(accessTokenUri)
     .then((response) => {
       const body = (typeof response.body === 'string') ? JSON.parse(response.body) : response.body;
       if (body.error) throw new Error('server$oauthVKRegister:' + response.body);
       return body;
     })
-    .then(({access_token, expires_in, user_id}) =>
-      db$findUser(AUTH_TYPE.VK, user_id)
+    .then(({access_token, expires_in, user_id}) => {
+      logger.debug(`VK returned`, {access_token, expires_in, user_id});
+      return db$findUser(AUTH_TYPE.VK, user_id)
         .then((user) => server$getUserInfo(user_id, access_token, expires_in)
           .then((userInfo) => ({
             name: userInfo.first_name + ' ' + userInfo.last_name
@@ -35,6 +38,7 @@ export const server$oauthVKRegister = (protocol, host, code) => (dispatch, getSt
             }
           }))
           .then((updateObject) => {
+            logger.debug(`User Info`, updateObject);
             return (user === null
               ? db$registerUser(updateObject)
               : db$updateUser(AUTH_TYPE.VK, user_id, {$set: updateObject}))
@@ -42,7 +46,7 @@ export const server$oauthVKRegister = (protocol, host, code) => (dispatch, getSt
               .then((result) => dispatch(server$injectUser(result._id.toString(), result.name)))
           })
         )
-    )
+    })
     .then((user) => user.token)
     .catch(err => {
       logger.error(err);
@@ -50,8 +54,10 @@ export const server$oauthVKRegister = (protocol, host, code) => (dispatch, getSt
     });
 };
 
-export const server$getUserInfo = (user_id, access_token, expires_in) =>
-  requestGet('https://api.vk.com/method/users.get?access_token=' + access_token)
+export const server$getUserInfo = (user_id, access_token, expires_in) => {
+  const requestGet = promisify(request.get);
+
+  return requestGet('https://api.vk.com/method/users.get?access_token=' + access_token)
     .then((response) => {
       const body = (typeof response.body === 'string') ? JSON.parse(response.body) : response.body;
       if (body.error) throw new Error('server$getUserInfo:' + response.body);
@@ -61,3 +67,4 @@ export const server$getUserInfo = (user_id, access_token, expires_in) =>
       if (response.length !== 1) throw new Error('Invalid login response');
       return response[0];
     });
+}

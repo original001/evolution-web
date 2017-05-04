@@ -127,6 +127,7 @@
     "redux-devtools-dispatch": "*",
     "redux-devtools-dock-monitor": "*",
     "redux-devtools-log-monitor": "*",
+    "request": "https://registry.npmjs.org/request/-/request-2.79.0.tgz",
     "rimraf": "*",
     "sass-loader": "*",
     "sinon": "*",
