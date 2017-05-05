@@ -6,11 +6,11 @@ import {db$findUser, db$registerUser, db$updateUser} from './db';
 import {AUTH_TYPE} from '../../shared/constants';
 import {server$injectUser} from '../../shared/actions/actions';
 
-export const server$oauthVKRegister = (protocol, host, code) => (dispatch, getState) => {
+export const server$oauthVKRegister = (redirectUri, code) => (dispatch, getState) => {
   const VK_API_ACCESS_TOKEN = {
     client_id: process.env.VK_API_ID
     , client_secret: process.env.VK_API_SECRET
-    , redirect_uri: `${protocol}://${host}/api/oauth/vk`
+    , redirect_uri: redirectUri
     , code
   };
   const accessTokenUri = 'https://oauth.vk.com/access_token?' + querystring.stringify(VK_API_ACCESS_TOKEN);

@@ -51,6 +51,7 @@
     "mongodb": "*",
     "morgan": "*",
     "node-sass-json-importer": "^3.0.0",
+    "oauth": "^0.9.15",
     "prop-types": "^15.5.8",
     "rc-tooltip": "^3.4.3",
     "react": "*",
