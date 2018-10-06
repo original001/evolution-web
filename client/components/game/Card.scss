@@ -1,0 +1,41 @@
+@import "../shared/colors.scss";
+
+:local {
+  .root {
+    position: relative;
+    display: flex;
+    margin-left: 15px;
+    flex-direction: column;
+    width: 146px;
+    min-height: 203px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    background: $lightGreen 50% 60% no-repeat;
+  }
+  .needImg {
+    background-image: url("../../assets/gfx/back.svg");
+  }
+  .food {
+    padding: 5px 6px;
+    display: flex;
+  }
+  .foodItem {
+    font-size: 16px;
+    color: $base;
+    opacity: 0.3;
+    margin-right: 3px;
+  }
+  .full {
+    opacity: 1;
+    color: $green;
+  }
+  .fat {
+    opacity: 1;
+    color: $orange;
+  }
+  .bottom {
+    display: flex;
+    flex-direction: column-reverse;
+    flex-wrap: nowrap;
+  }
+}

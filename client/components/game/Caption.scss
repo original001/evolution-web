@@ -1,0 +1,56 @@
+@import "../shared/colors.scss";
+
+:local {
+  .caption {
+    position: relative;
+    height: 28px;
+    line-height: 27px;
+    padding: 0 11px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: $base;
+    background: $lightGreen;
+    &:after {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        margin: auto;
+        width: 80%;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        content: '';
+    }
+    &.together:after {
+        border-top-color: $blue;
+    }
+    &.improve:after {
+        border-top-color: $purple;
+    }
+  }
+
+  .active {
+    background: $yellow;
+  }
+  .small {
+    font-size: 11px;
+    height: 19px;
+    line-height: 19px;
+    text-transform: none;
+  }
+  .improve {
+      background: $lightPurple;
+  }
+  .together {
+      background: $lightBlue;
+  }
+  .mod {
+      position: absolute;
+      right: 9px;
+      font-size: 14px;
+      font-weight: 700;
+      &Small {
+          font-size: 12px;
+      }
+  }
+}
